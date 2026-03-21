@@ -96,9 +96,19 @@ export default function EventManagerDemo() {
 
   return (
     <div className="container mx-auto p-4 sm:p-6 pb-24 min-h-screen">
-       <div className="mb-6">
-        <h1 className="text-3xl font-bold tracking-tight text-primary uppercase">BYOSASPTECH</h1>
-        <p className="text-muted-foreground mt-2">Manage all your company's upcoming events, meetings, and activities.</p>
+       <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+        {/* Circular Logo */}
+        <div className="h-16 w-16 sm:h-20 sm:w-20 shrink-0 overflow-hidden rounded-full border-2 bg-white flex items-center justify-center border-primary/20 shadow-md">
+          <img 
+            src="/logo.png" 
+            alt="BYOSE TECH Logo" 
+            className="h-full w-full object-contain"
+          />
+        </div>
+        <div>
+          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-primary uppercase">BYOSE TECH</h1>
+          <p className="text-muted-foreground mt-2">Manage all your company's upcoming events, meetings, and activities.</p>
+        </div>
       </div>
 
       {loading ? (

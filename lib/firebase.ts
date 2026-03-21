@@ -1,15 +1,15 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 
-// Your web app's Firebase configuration
+// Your web app's Firebase configuration using environment variables
 const firebaseConfig = {
-  apiKey: "AIzaSyA6RcG-49C1QJ5eqn5GRLmjq-Lh_kSjc_o",
-  authDomain: "calendar-7224a.firebaseapp.com",
-  projectId: "calendar-7224a",
-  storageBucket: "calendar-7224a.firebasestorage.app",
-  messagingSenderId: "138611194506",
-  appId: "1:138611194506:web:9ca944f6833d69c2afcb73",
-  measurementId: "G-4TX6M9V5VW"
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
 };
 
 // Initialize Firebase, avoiding multiple allocations in Next.js dev mode

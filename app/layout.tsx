@@ -2,7 +2,7 @@ import "@/app/globals.css"
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
-  title: "Bioccité Calendar",
+  title: "BYOSE TECH CALENDAR",
   description: "Event Manager application for Bioccité",
 }
 

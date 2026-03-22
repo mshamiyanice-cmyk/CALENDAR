@@ -1,12 +1,13 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { EventManager, type Event } from "@/components/ui/event-manager"
+import { EventManager, type Event, type StickyNote } from "@/components/ui/event-manager"
 import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, Timestamp } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 
 export default function EventManagerDemo() {
   const [events, setEvents] = useState<Event[]>([])
+  const [notes, setNotes] = useState<StickyNote[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -43,7 +44,33 @@ export default function EventManagerDemo() {
       setLoading(false)
     })
 
-    return () => unsubscribe()
+    const unsubscribeNotes = onSnapshot(collection(db, "calendar-notes"), (snapshot) => {
+      const formattedNotes = snapshot.docs.map(docSnapshot => {
+        const data = docSnapshot.data()
+        
+        const parseDate = (val: any) => {
+          if (!val) return undefined
+          if (typeof val.toDate === 'function') return val.toDate()
+          const parsed = new Date(val)
+          return isNaN(parsed.getTime()) ? undefined : parsed
+        }
+
+        return {
+          id: docSnapshot.id,
+          content: data.content || "",
+          color: data.color || "yellow",
+          pinnedDate: parseDate(data.pinnedDate),
+          pinnedMonth: data.pinnedMonth,
+          pinnedYear: data.pinnedYear,
+        } as StickyNote
+      })
+      setNotes(formattedNotes)
+    }, (error) => console.error("Error fetching notes:", error))
+
+    return () => {
+      unsubscribe()
+      unsubscribeNotes()
+    }
   }, [])
 
   const handleCreateEvent = async (eventData: Omit<Event, "id">) => {
@@ -94,6 +121,36 @@ export default function EventManagerDemo() {
     }
   }
 
+  const handleCreateNote = async (noteData: Omit<StickyNote, "id">) => {
+    try {
+      const payload: any = { ...noteData }
+      if (payload.pinnedDate) payload.pinnedDate = Timestamp.fromDate(payload.pinnedDate)
+      
+      Object.keys(payload).forEach(key => {
+        if (payload[key] === undefined) delete payload[key];
+      });
+      await addDoc(collection(db, "calendar-notes"), payload)
+    } catch (error) { console.error("Error adding note: ", error) }
+  }
+
+  const handleUpdateNote = async (id: string, noteData: Partial<StickyNote>) => {
+    try {
+      const payload: any = { ...noteData }
+      if (payload.pinnedDate) payload.pinnedDate = Timestamp.fromDate(payload.pinnedDate)
+      
+      Object.keys(payload).forEach(key => {
+        if (payload[key] === undefined) delete payload[key];
+      });
+      await updateDoc(doc(db, "calendar-notes", id), payload)
+    } catch (error) { console.error("Error updating note: ", error) }
+  }
+
+  const handleDeleteNote = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, "calendar-notes", id))
+    } catch (error) { console.error("Error deleting note: ", error) }
+  }
+
   return (
     <div className="container mx-auto p-4 sm:p-6 pb-24 min-h-screen">
        <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center gap-4">
@@ -119,9 +176,13 @@ export default function EventManagerDemo() {
       ) : (
         <EventManager
           events={events}
+          notes={notes}
           onEventCreate={handleCreateEvent}
           onEventUpdate={handleUpdateEvent}
           onEventDelete={handleDeleteEvent}
+          onNoteCreate={handleCreateNote}
+          onNoteUpdate={handleUpdateNote}
+          onNoteDelete={handleDeleteNote}
           categories={["Event", "Meeting", "Task", "Reminder", "Personal"]}
           availableTags={["Important", "Urgent", "Work", "Personal", "Team", "Client"]}
           defaultView="month"

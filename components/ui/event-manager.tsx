@@ -16,7 +16,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
-import { ChevronLeft, ChevronRight, Plus, Calendar, Clock, Grid3x3, List, Search, Filter, X, LayoutGrid } from "lucide-react"
+import { ChevronLeft, ChevronRight, Plus, Calendar, Clock, Grid3x3, List, Search, Filter, X, LayoutGrid, StickyNote as StickyNoteIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 import {
   DropdownMenu,
@@ -27,26 +27,39 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 
-export interface Event {
+export type Event = {
   id: string
   title: string
   description?: string
   startTime: Date
   endTime: Date
   color: string
-  category?: string
+  category: string
   attendees?: string[]
   tags?: string[]
 }
 
+export type StickyNote = {
+  id: string
+  content: string
+  color: string
+  pinnedDate?: Date
+  pinnedMonth?: number
+  pinnedYear?: number
+}
+
 export interface EventManagerProps {
   events?: Event[]
+  notes?: StickyNote[]
   onEventCreate?: (event: Omit<Event, "id">) => void
   onEventUpdate?: (id: string, event: Partial<Event>) => void
   onEventDelete?: (id: string) => void
+  onNoteCreate?: (note: Omit<StickyNote, "id">) => void
+  onNoteUpdate?: (id: string, note: Partial<StickyNote>) => void
+  onNoteDelete?: (id: string) => void
   categories?: string[]
   colors?: { name: string; value: string; bg: string; text: string }[]
-  defaultView?: "month" | "week" | "day" | "list" | "year"
+  defaultView?: "month" | "week" | "day" | "list" | "year" | "notes"
   className?: string
   availableTags?: string[]
 }
@@ -62,9 +75,13 @@ const defaultColors = [
 
 export function EventManager({
   events: initialEvents = [],
+  notes = [],
   onEventCreate,
   onEventUpdate,
   onEventDelete,
+  onNoteCreate,
+  onNoteUpdate,
+  onNoteDelete,
   categories = ["Event", "Meeting", "Task", "Reminder", "Personal"],
   colors = defaultColors,
   defaultView = "month",
@@ -79,10 +96,12 @@ export function EventManager({
   }, [initialEvents])
 
   const [currentDate, setCurrentDate] = useState(new Date())
-  const [view, setView] = useState<"month" | "week" | "day" | "list" | "year">(defaultView)
+  const [view, setView] = useState<"month" | "week" | "day" | "list" | "year" | "notes">(defaultView as "month" | "week" | "day" | "list" | "year" | "notes")
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isCreating, setIsCreating] = useState(false)
+  const [isNoteDialogOpen, setIsNoteDialogOpen] = useState(false)
+  const [editingNote, setEditingNote] = useState<Partial<StickyNote>>({})
   
   const [dayEventsDate, setDayEventsDate] = useState<Date | null>(null)
   const [isDayEventsDialogOpen, setIsDayEventsDialogOpen] = useState(false)
@@ -154,7 +173,7 @@ export function EventManager({
       startTime: newEvent.startTime,
       endTime: newEvent.endTime,
       color: newEvent.color || colors[0].value,
-      category: newEvent.category,
+      category: newEvent.category || "Task",
       attendees: newEvent.attendees,
       tags: newEvent.tags || [],
     }
@@ -298,6 +317,7 @@ export function EventManager({
               })}
             {view === "list" && "All Events"}
             {view === "year" && currentDate.getFullYear()}
+            {view === "notes" && "Notes Board"}
           </h2>
           <div className="flex items-center gap-2">
             <Button variant="outline" size="icon" onClick={() => navigateDate("prev")} className="h-8 w-8">
@@ -350,12 +370,18 @@ export function EventManager({
                     Year View
                   </div>
                 </SelectItem>
+                <SelectItem value="notes">
+                  <div className="flex items-center gap-2">
+                    <StickyNoteIcon className="h-4 w-4" />
+                    Notes Board
+                  </div>
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           {/* Desktop: Button group */}
-          <div className="hidden sm:flex items-center gap-1 rounded-lg border bg-background p-1">
+          <div className="hidden sm:flex flex-wrap items-center gap-1 rounded-lg border bg-background p-1">
             <Button
               variant={view === "month" ? "secondary" : "ghost"}
               size="sm"
@@ -400,6 +426,15 @@ export function EventManager({
             >
               <LayoutGrid className="h-4 w-4" />
               <span className="ml-1">Year</span>
+            </Button>
+            <Button
+              variant={view === "notes" ? "secondary" : "ghost"}
+              size="sm"
+              onClick={() => setView("notes")}
+              className="h-8"
+            >
+              <StickyNoteIcon className="h-4 w-4" />
+              <span className="ml-1">Notes</span>
             </Button>
           </div>
 
@@ -719,6 +754,7 @@ export function EventManager({
         <MonthView
           currentDate={currentDate}
           events={filteredEvents}
+          notes={notes}
           onDateClick={handleDateClick}
           onEventClick={(event) => {
             setSelectedEvent(event)
@@ -770,6 +806,70 @@ export function EventManager({
           }}
           getColorClasses={getColorClasses}
         />
+      )}
+
+      {view === "notes" && (
+        <div className="absolute inset-0 bg-secondary/30 p-4 sm:p-6 overflow-y-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 pb-20">
+            <button
+              onClick={() => {
+                setEditingNote({ color: "yellow", content: "" })
+                setIsNoteDialogOpen(true)
+              }}
+              className="flex flex-col items-center justify-center p-6 min-h-[200px] border-2 border-dashed border-primary/20 rounded-lg text-primary/60 hover:bg-primary/5 transition-colors shadow-sm"
+            >
+              <Plus className="h-8 w-8 mb-2" />
+              <span className="font-semibold">New Sticky Note</span>
+            </button>
+            
+            {notes.map(note => (
+              <div 
+                key={note.id}
+                className={cn(
+                  "relative p-4 sm:p-5 rounded-b-md rounded-tr-md shadow-md min-h-[200px] flex flex-col group transition-transform hover:-translate-y-1 hover:shadow-xl", 
+                  note.color === "yellow" ? "bg-[#fef3c7] border-t-8 border-amber-300 text-amber-900" :
+                  note.color === "pink" ? "bg-[#fce7f3] border-t-8 border-pink-400 text-pink-900" :
+                  note.color === "green" ? "bg-[#d1fae5] border-t-8 border-emerald-400 text-emerald-900" :
+                  "bg-[#e0f2fe] border-t-8 border-sky-400 text-sky-900"
+                )}
+              >
+                {/* Folded corner effect */}
+                <div className="absolute top-0 right-0 w-8 h-8 -mt-2 -mr-[2px] pointer-events-none before:absolute before:content-[''] before:bottom-0 before:left-0 before:border-b-[32px] before:border-b-black/5 before:border-r-[32px] before:border-r-transparent after:absolute after:content-[''] after:top-0 after:right-0 after:border-t-[32px] after:border-t-transparent after:border-l-[32px] after:border-l-white" />
+                
+                <div className="flex-1 whitespace-pre-wrap pt-1 pr-6 font-medium text-sm sm:text-base leading-relaxed">
+                  {note.content}
+                </div>
+                
+                <div className="mt-4 flex justify-between items-center opacity-0 group-hover:opacity-100 transition-opacity">
+                  <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider opacity-50">
+                    {note.pinnedDate ? note.pinnedDate.toLocaleDateString() : "Board Pin"}
+                  </span>
+                  <div className="flex gap-1">
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-7 w-7 sm:h-8 sm:w-8 hover:bg-black/10"
+                      onClick={() => {
+                        setEditingNote(note)
+                        setIsNoteDialogOpen(true)
+                      }}
+                    >
+                      <StickyNoteIcon className="h-3 w-3 sm:h-4 sm:w-4" />
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-7 w-7 sm:h-8 sm:w-8 text-black/40 hover:text-red-600 hover:bg-red-500/20"
+                      onClick={() => onNoteDelete?.(note.id)}
+                    >
+                      <X className="h-3 w-3 sm:h-4 sm:w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
 
       {/* Day Events Dialog */}
@@ -1030,6 +1130,60 @@ export function EventManager({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Sticky Note Dialog */}
+      <Dialog open={isNoteDialogOpen} onOpenChange={setIsNoteDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{editingNote.id ? "Edit Sticky Note" : "New Sticky Note"}</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="noteContent">What's on your mind?</Label>
+              <Textarea 
+                id="noteContent" 
+                rows={5}
+                value={editingNote.content || ""}
+                onChange={(e) => setEditingNote(prev => ({ ...prev, content: e.target.value }))}
+                className="resize-none border-2 focus-visible:ring-0 focus-visible:border-primary"
+                placeholder="Type your thoughts here..."
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>Note Color</Label>
+              <div className="flex gap-3">
+                {["yellow", "pink", "green", "blue"].map(color => (
+                  <button
+                    key={color}
+                    onClick={() => setEditingNote(prev => ({ ...prev, color }))}
+                    className={cn(
+                      "w-10 h-10 rounded-full transition-transform outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+                      editingNote.color === color || (!editingNote.color && color === "yellow") ? "scale-110 shadow-md ring-2 ring-primary ring-offset-2" : "border-2 border-transparent hover:scale-105",
+                      color === "yellow" ? "bg-amber-300" :
+                      color === "pink" ? "bg-pink-300" :
+                      color === "green" ? "bg-emerald-300" : "bg-sky-300"
+                    )}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsNoteDialogOpen(false)}>Cancel</Button>
+            <Button onClick={() => {
+              if (editingNote.id) {
+                onNoteUpdate?.(editingNote.id, editingNote)
+              } else {
+                onNoteCreate?.({
+                  content: editingNote.content || "Empty Note",
+                  color: editingNote.color || "yellow"
+                })
+              }
+              setIsNoteDialogOpen(false)
+            }}>Save Note</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
@@ -1235,9 +1389,11 @@ function MonthView({
   onDragEnd,
   onDrop,
   getColorClasses,
+  notes = [],
 }: {
   currentDate: Date
   events: Event[]
+  notes?: StickyNote[]
   onDateClick: (date: Date) => void
   onEventClick: (event: Event) => void
   onDragStart: (event: Event) => void
@@ -1269,6 +1425,18 @@ function MonthView({
     })
   }
 
+  const getNotesForDay = (date: Date) => {
+    return notes.filter((note) => {
+      if (!note.pinnedDate) return false;
+      const noteDate = new Date(note.pinnedDate)
+      return (
+        noteDate.getDate() === date.getDate() &&
+        noteDate.getMonth() === date.getMonth() &&
+        noteDate.getFullYear() === date.getFullYear()
+      )
+    })
+  }
+
   return (
     <Card className="overflow-hidden">
       <div className="grid grid-cols-7 border-b">
@@ -1282,6 +1450,7 @@ function MonthView({
       <div className="grid grid-cols-7">
         {days.map((day, index) => {
           const dayEvents = getEventsForDay(day)
+          const dayNotes = getNotesForDay(day)
           const isCurrentMonth = day.getMonth() === currentDate.getMonth()
           const isToday = day.toDateString() === new Date().toDateString()
 
@@ -1320,6 +1489,13 @@ function MonthView({
                 ))}
                 {dayEvents.length > 3 && (
                   <div className="text-[10px] text-muted-foreground sm:text-xs">+{dayEvents.length - 3} more</div>
+                )}
+                {dayNotes.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {dayNotes.map(n => (
+                      <StickyNoteIcon key={n.id} className={cn("h-3.5 w-3.5", n.color === "yellow" ? "text-amber-500 fill-amber-300" : n.color === "pink" ? "text-pink-500 fill-pink-300" : n.color === "green" ? "text-emerald-500 fill-emerald-300" : "text-sky-500 fill-sky-300")} />
+                    ))}
+                  </div>
                 )}
               </div>
             </div>

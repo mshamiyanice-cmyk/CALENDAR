@@ -65,7 +65,7 @@ export function EventManager({
   onEventCreate,
   onEventUpdate,
   onEventDelete,
-  categories = ["Meeting", "Task", "Reminder", "Personal"],
+  categories = ["Event", "Meeting", "Task", "Reminder", "Personal"],
   colors = defaultColors,
   defaultView = "month",
   className,

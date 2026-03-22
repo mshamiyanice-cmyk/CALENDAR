@@ -122,7 +122,7 @@ export default function EventManagerDemo() {
           onEventCreate={handleCreateEvent}
           onEventUpdate={handleUpdateEvent}
           onEventDelete={handleDeleteEvent}
-          categories={["Meeting", "Task", "Reminder", "Personal"]}
+          categories={["Event", "Meeting", "Task", "Reminder", "Personal"]}
           availableTags={["Important", "Urgent", "Work", "Personal", "Team", "Client"]}
           defaultView="month"
         />

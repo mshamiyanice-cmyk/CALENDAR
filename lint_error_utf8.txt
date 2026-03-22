@@ -1,8 +1,0 @@
-﻿components/ui/event-manager.tsx(86,3): error TS2322: Type '{ name: string; value: string; bg: string; text: string; }[]' is not assignable to type '{ label: string; value: string; bg: string; text: string; }[]'.
-  Property 'label' is missing in type '{ name: string; value: string; bg: string; text: string; }' but required in type '{ label: string; value: string; bg: string; text: string; }'.
-components/ui/event-manager.tsx(174,7): error TS2322: Type 'string | undefined' is not assignable to type 'string'.
-  Type 'undefined' is not assignable to type 'string'.
-components/ui/event-manager.tsx(504,30): error TS2339: Property 'name' does not exist on type '{ label: string; value: string; bg: string; text: string; }'.
-components/ui/event-manager.tsx(617,28): error TS2339: Property 'name' does not exist on type '{ label: string; value: string; bg: string; text: string; }'.
-components/ui/event-manager.tsx(703,24): error TS2339: Property 'name' does not exist on type '{ label: string; value: string; bg: string; text: string; }'.
-components/ui/event-manager.tsx(1015,34): error TS2339: Property 'name' does not exist on type '{ label: string; value: string; bg: string; text: string; }'.

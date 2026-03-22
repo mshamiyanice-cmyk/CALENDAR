@@ -809,7 +809,7 @@ export function EventManager({
       )}
 
       {view === "notes" && (
-        <div className="absolute inset-0 bg-secondary/30 p-4 sm:p-6 overflow-y-auto">
+        <div className="rounded-xl border bg-card text-card-foreground shadow-sm bg-secondary/10 p-4 sm:p-6 overflow-y-auto flex-1 min-h-[500px]">
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 pb-20">
             <button
               onClick={() => {
@@ -1167,6 +1167,30 @@ export function EventManager({
                 ))}
               </div>
             </div>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="pinnedDate">Pin to Date (Optional)</Label>
+              <Input
+                id="pinnedDate"
+                type="date"
+                value={
+                  editingNote.pinnedDate && !isNaN(editingNote.pinnedDate.getTime())
+                    ? new Date(editingNote.pinnedDate.getTime() - editingNote.pinnedDate.getTimezoneOffset() * 60000)
+                        .toISOString()
+                        .split("T")[0]
+                    : ""
+                }
+                onChange={(e) => {
+                  if (e.target.value) {
+                    const date = new Date(e.target.value)
+                    date.setHours(12, 0, 0, 0)
+                    setEditingNote(prev => ({ ...prev, pinnedDate: date }))
+                  } else {
+                    setEditingNote(prev => ({ ...prev, pinnedDate: undefined }))
+                  }
+                }}
+              />
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsNoteDialogOpen(false)}>Cancel</Button>
@@ -1176,7 +1200,8 @@ export function EventManager({
               } else {
                 onNoteCreate?.({
                   content: editingNote.content || "Empty Note",
-                  color: editingNote.color || "yellow"
+                  color: editingNote.color || "yellow",
+                  pinnedDate: editingNote.pinnedDate
                 })
               }
               setIsNoteDialogOpen(false)
